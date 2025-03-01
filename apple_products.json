@@ -1,0 +1,184 @@
+{
+  "products": [
+    {
+      "name": "iPhone 15 Pro",
+      "configurations": [
+        {
+          "storage": "128GB",
+          "options": [
+            {
+              "color": "Black Titanium",
+              "price": 999,
+              "image": "iphone15pro_black.jpg"
+            },
+            {
+              "color": "White Titanium",
+              "price": 999,
+              "image": "iphone15pro_white.jpg"
+            },
+            {
+              "color": "Blue Titanium",
+              "price": 999,
+              "image": "iphone15pro_blue.jpg"
+            },
+            {
+              "color": "Natural Titanium",
+              "price": 999,
+              "image": "iphone15pro_natural.jpg"
+            }
+          ]
+        },
+        {
+          "storage": "256GB",
+          "options": [
+            {
+              "color": "Black Titanium",
+              "price": 1099,
+              "image": "iphone15pro_black.jpg"
+            },
+            {
+              "color": "White Titanium",
+              "price": 1099,
+              "image": "iphone15pro_white.jpg"
+            },
+            {
+              "color": "Blue Titanium",
+              "price": 1099,
+              "image": "iphone15pro_blue.jpg"
+            },
+            {
+              "color": "Natural Titanium",
+              "price": 1099,
+              "image": "iphone15pro_natural.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "iPad Pro 12.9-inch",
+      "configurations": [
+        {
+          "storage": "256GB",
+          "options": [
+            { "color": "Silver", "price": 1199, "image": "ipadpro_silver.jpg" },
+            {
+              "color": "Space Gray",
+              "price": 1199,
+              "image": "ipadpro_spacegray.jpg"
+            }
+          ]
+        },
+        {
+          "storage": "512GB",
+          "options": [
+            { "color": "Silver", "price": 1399, "image": "ipadpro_silver.jpg" },
+            {
+              "color": "Space Gray",
+              "price": 1399,
+              "image": "ipadpro_spacegray.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "MacBook Air 13-inch",
+      "configurations": [
+        {
+          "chip": "M2",
+          "ram": "8GB",
+          "storage": "256GB",
+          "options": [
+            {
+              "color": "Midnight",
+              "price": 1099,
+              "image": "macbookair_midnight.jpg"
+            },
+            {
+              "color": "Starlight",
+              "price": 1099,
+              "image": "macbookair_starlight.jpg"
+            },
+            {
+              "color": "Silver",
+              "price": 1099,
+              "image": "macbookair_silver.jpg"
+            },
+            {
+              "color": "Space Gray",
+              "price": 1099,
+              "image": "macbookair_spacegray.jpg"
+            }
+          ]
+        },
+        {
+          "chip": "M2",
+          "ram": "16GB",
+          "storage": "512GB",
+          "options": [
+            {
+              "color": "Midnight",
+              "price": 1399,
+              "image": "macbookair_midnight.jpg"
+            },
+            {
+              "color": "Starlight",
+              "price": 1399,
+              "image": "macbookair_starlight.jpg"
+            },
+            {
+              "color": "Silver",
+              "price": 1399,
+              "image": "macbookair_silver.jpg"
+            },
+            {
+              "color": "Space Gray",
+              "price": 1399,
+              "image": "macbookair_spacegray.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "MacBook Pro 14-inch",
+      "configurations": [
+        {
+          "chip": "M3 Pro",
+          "ram": "16GB",
+          "storage": "512GB",
+          "options": [
+            {
+              "color": "Silver",
+              "price": 1999,
+              "image": "macbookpro_silver.jpg"
+            },
+            {
+              "color": "Space Black",
+              "price": 1999,
+              "image": "macbookpro_spaceblack.jpg"
+            }
+          ]
+        },
+        {
+          "chip": "M3 Max",
+          "ram": "32GB",
+          "storage": "1TB",
+          "options": [
+            {
+              "color": "Silver",
+              "price": 3199,
+              "image": "macbookpro_silver.jpg"
+            },
+            {
+              "color": "Space Black",
+              "price": 3199,
+              "image": "macbookpro_spaceblack.jpg"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
