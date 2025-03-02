@@ -1,5 +1,4 @@
 from contextlib import asynccontextmanager
-from components.prompt_generator import generate_prompt
 from cores.model_factory import ModelFactory
 from fastapi import FastAPI, Depends
 from fastapi.responses import HTMLResponse
@@ -89,14 +88,13 @@ def read_root():
 def create_message(payload: MessageCreateRequest, model_factory: ModelFactory = Depends(get_model_factory), store_factory: StoreFactory = Depends(get_store_factory)):
     llm = model_factory.get_groq_model()
     vector_store = store_factory.get_in_memory_store()
-    prompt = generate_prompt() 
 
-    graph = build_graph(prompt, llm, vector_store)
-
-    response = graph.invoke({"question": f"{payload.message}"})
-    # Example processing logic (e.g., save to database)
+    graph = build_graph(llm, vector_store)
+    config = {"thread_id": "abc123"}
+    input = {"messages": [{"type": "human", "content": payload.message}]}
+    response = graph.invoke(input, config=config)
     return {
-        "message": response['answer']
+        "message": response['messages'][-1].content
     }
 
 

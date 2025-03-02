@@ -13,7 +13,6 @@ def load_data():
          text_content=False)
     docs = loader.load()
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    print(docs)
     all_splits = text_splitter.split_documents(docs)
 
     store = get_store_factory().get_in_memory_store()

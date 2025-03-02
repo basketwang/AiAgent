@@ -1,27 +1,45 @@
-from langchain import hub
-from langchain_core.documents import Document
-from langgraph.graph import START, StateGraph
+from components.prompt_generator import generate_prompt
+from functools import lru_cache
+from langgraph.checkpoint.memory import MemorySaver
+from langchain_core.messages import SystemMessage
+from langchain_core.tools import tool
+from langgraph.graph import END, StateGraph, MessagesState
+from langgraph.prebuilt import ToolNode, tools_condition
 from typing_extensions import List, TypedDict
 
-def build_graph(prompt, llm, vector_store):
-    class State(TypedDict):
-        question: str
-        context: List[Document]
-        answer: str
+@lru_cache()
+def build_graph(llm, vector_store):
+    def retrieve(state: MessagesState):
+        """Retrieve information related to a query."""
+        user_message = state["messages"][-1]
+        query = user_message.content
+        print(f"user query: {query}")
 
-    def retrieve(state: State):
-        retrieved_docs = vector_store.similarity_search(state["question"])
-        print(retrieved_docs)
-        return {"context": retrieved_docs}
+        retrieved_docs = vector_store.similarity_search(query)
+        serialized = "\n\n".join(
+            (f"Content: {doc.page_content}") for doc in retrieved_docs
+        )
+        state["messages"].append(SystemMessage(serialized))
+        return state
 
+    def generate(state: MessagesState):
+        """Generate answer."""
+        last_user_message = [ message for message in state["messages"] if message.type == 'human'][-1]
+        last_system_message = [message for message in state["messages"] if message.type == 'system'][-1]
 
-    def generate(state: State):
-        docs_content = "\n\n".join(doc.page_content for doc in state["context"])
-        messages = prompt.invoke({"user_input": state["question"], "retrieved_documents": docs_content})
-        response = llm.invoke(messages)
-        return {"answer": response.content}
+        prompt = generate_prompt().format(user_input=last_user_message, retrieved_documents=last_system_message)
+        # Run
+        response = llm.invoke(prompt)
+        state["messages"].append(response)
+        return state
 
-    graph_builder = StateGraph(State).add_sequence([retrieve, generate])
-    graph_builder.add_edge(START, "retrieve")
-    graph = graph_builder.compile()
+    graph_builder = StateGraph(MessagesState)
+    graph_builder.add_node(retrieve)
+    graph_builder.add_node(generate)
+
+    graph_builder.set_entry_point("retrieve")
+    graph_builder.add_edge("retrieve","generate")
+    graph_builder.add_edge("generate", END)
+    memory = MemorySaver()
+    graph = graph_builder.compile(checkpointer=memory)
     return graph
