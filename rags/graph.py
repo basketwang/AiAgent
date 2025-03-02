@@ -24,11 +24,13 @@ def build_graph(llm, vector_store):
 
     def generate(state: MessagesState):
         """Generate answer."""
-        last_user_message = [ message for message in state["messages"] if message.type == 'human'][-1]
-        last_system_message = [message for message in state["messages"] if message.type == 'system'][-1]
+        conversation_messages = [ message for message in state["messages"] if message.type in ('human', 'ai')]
+        last_user_message = [message for message in conversation_messages if message.type == 'human'][-1]
+        last_retrieved_message = [message for message in state["messages"] if message.type == 'system'][-1]
 
-        prompt = generate_prompt().format(user_input=last_user_message, retrieved_documents=last_system_message)
+        message_content = generate_prompt().format(user_input=last_user_message.content, retrieved_documents=last_retrieved_message.content)
         # Run
+        prompt = conversation_messages[:-1] + [message_content]
         response = llm.invoke(prompt)
         state["messages"].append(response)
         return state

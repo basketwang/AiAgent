@@ -12,7 +12,7 @@ def generate_prompt() -> PromptTemplate:
 
         ### Task:
         1. Retrieve relevant product information from the knowledge base.
-        2. Answer customer queries using the retrieved data. If the query is vague, ask clarifying questions.
+        2. Answer customer queries using the retrieved data and previous conversations. If the query is vague, ask clarifying questions.
         3. If the customer uploaded an image, use it to find visually similar products and describe them.
         4. Recommend the most relevant products and justify why they match the user’s needs.
         5. Maintain a friendly, persuasive, and informative tone.
