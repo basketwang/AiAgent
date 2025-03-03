@@ -8,6 +8,7 @@ from messages.message import MessageCreateRequest
 from rags.data_loader import load_data
 from rags.store_factory import StoreFactory, get_store_factory
 from rags.graph import build_graph
+from fastapi.staticfiles import StaticFiles
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -24,6 +25,7 @@ def get_model_factory() -> ModelFactory:
     return ModelFactory()
 
 app = FastAPI(lifespan=lifespan)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/", response_class=HTMLResponse)
 def read_root():
