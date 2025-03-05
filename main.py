@@ -1,11 +1,11 @@
 from contextlib import asynccontextmanager
 from cores.model_factory import ModelFactory, get_model_factory
-from cores.store_factory import StoreFactory, get_store_factory
+from cores.store_factory import StoreFactory, VectorStoreType, get_store_factory
 from fastapi import FastAPI, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from langchain_core.runnables import RunnableConfig
-from messages.message import MessageCreateRequest
+from utils.utils import MessageCreateRequest
 from PIL import Image
 from components.data_loader import load_data
 from components.graph import build_graph
@@ -68,9 +68,11 @@ def read_root():
                             imageBase64 = reader.result.split(",")[1]; // Extract Base64 data
                             await sendJsonRequest(message, imageBase64);
                         };
+                        imageInput.value = '';
                     } else {
                         await sendJsonRequest(message, null);
                     }
+                    messageInput.value = '';
                 }
                 async function sendJsonRequest(message, imageBase64) {
                     const payload = {
@@ -132,15 +134,9 @@ def read_root():
 
 @app.post("/create_message")
 def create_message(payload: MessageCreateRequest, model_factory: ModelFactory = Depends(get_model_factory), store_factory: StoreFactory = Depends(get_store_factory)):
-    llm = model_factory.get_llm_model("llama3-8b-8192", model_provider="groq")
-    # InMemoryStore can only work on text
-    #vector_store = store_factory.get_in_memory_store()
-
-    vector_store = store_factory.get_faiss_store()
-    graph = build_graph(llm, vector_store)
+    graph = build_graph("llama3-8b-8192", "groq", VectorStoreType.FAISS)
     input = {"messages": [{"type": "human", "content": payload.message, "image": payload.image}]}
-    response = graph.invoke(input, config=RunnableConfig({"thread_id": "abc123"}))
-    print(f"response: {response['messages'][-1].content}")
+    response = graph.invoke(input, config=RunnableConfig(configurable={"thread_id": "abc123"}))
     return {
         "message": response['messages'][-1].content
     }

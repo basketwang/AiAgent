@@ -1,10 +1,15 @@
-from PIL import Image
 from io import BytesIO
+from PIL import Image
+from pydantic import BaseModel, Field
 from sentence_transformers import SentenceTransformer
 from typing import Optional
 
 import base64
 import os
+
+class MessageCreateRequest(BaseModel):
+    message: str = Field(..., description="The content of the message")
+    image: str | None = Field(None, description="The string of the image")
 
 def get_image_embedding(embedding_model:SentenceTransformer, image_path:Optional[str] = None, image_base64:Optional[str] = None):
     if image_path:

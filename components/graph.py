@@ -1,4 +1,7 @@
 from components.prompt_generator import generate_prompt
+from cores.model_factory import ModelFactory, get_model_factory
+from cores.store_factory import StoreFactory, VectorStoreType, get_store_factory
+from fastapi import Depends
 from functools import lru_cache
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.messages import SystemMessage
@@ -9,7 +12,7 @@ from utils.utils import get_image_embedding
 import numpy as np
 
 @lru_cache()
-def build_graph(llm, vector_store):
+def build_graph(model:str, model_provider:str, vector_store_type: VectorStoreType):
     def retrieve(state: MessagesState):
         """Retrieve information related to a query."""
         user_message = state["messages"][-1]
@@ -17,15 +20,17 @@ def build_graph(llm, vector_store):
         print(f"user query: {message_text}")
 
         embedding_model = SentenceTransformer("clip-ViT-B-32")
+        text_embedding = embedding_model.encode(message_text)
 
         if user_message.additional_kwargs.get('image'):
             image_embedding = get_image_embedding(embedding_model, image_base64=user_message.additional_kwargs.get('image'))
         else:
-            image_embedding = np.zeros((1, 512), dtype=np.float32)
-        text_embedding = embedding_model.encode(message_text)
-        combinted_embedding = np.concatenate([text_embedding, image_embedding]).flatten().tolist()
+            image_embedding = np.zeros(512, dtype=np.float32)
 
-        retrieved_docs = vector_store.similarity_search_by_vector(combinted_embedding)
+        combined_embedding = np.concatenate([text_embedding, image_embedding]).flatten().tolist()
+
+        vector_store = get_store_factory().get_vector_store(vector_store_type)
+        retrieved_docs = vector_store.similarity_search_by_vector(combined_embedding)
 
         print("Retrieved Docs:", retrieved_docs)
         serialized = "\n\n".join(
@@ -40,11 +45,15 @@ def build_graph(llm, vector_store):
         last_user_message = [message for message in conversation_messages if message.type == 'human'][-1]
         last_retrieved_message = [message for message in state["messages"] if message.type == 'system'][-1]
 
-        message_text = "\n Give me the list of products from the retrived_documents"
-        message_content = generate_prompt().format(user_input=last_user_message.content + message_text, retrieved_documents=last_retrieved_message.content)
+        if last_user_message.additional_kwargs.get('image'):
+            message_text = str(last_user_message.content) + "\n Give me the list of products from the retrived_documents"
+        else:
+            message_text = last_user_message.content
+        message_content = generate_prompt().format(user_input=message_text, retrieved_documents=last_retrieved_message.content)
         # Run
         prompt = conversation_messages[:-1] + [message_content]
         print(f"Completed Prompt to LLM: {prompt}")
+        llm = get_model_factory().get_llm_model(model, model_provider)
         response = llm.invoke(prompt)
         state["messages"].append(response)
         return state

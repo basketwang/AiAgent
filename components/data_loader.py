@@ -21,7 +21,6 @@ def load_data():
 
 def process_product(product, image_model):
     documents = []
-    processed_images = {}
     for config in product["configurations"]:
         storage = config.get("storage", "N/A")
         ram = config.get("ram", "N/A")

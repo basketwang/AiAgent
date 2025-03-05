@@ -1,9 +1,9 @@
 from enum import Enum
 from functools import lru_cache
 from langchain_community.docstore.in_memory import InMemoryDocstore
+from langchain_community.vectorstores import FAISS
 from langchain_core.embeddings import DeterministicFakeEmbedding
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain.vectorstores import FAISS
 from langchain_core.vectorstores import InMemoryVectorStore
 from sentence_transformers import SentenceTransformer
 from threading import Lock
@@ -55,6 +55,8 @@ class StoreFactory:
         for i, document in enumerate(documents):
             text_embedding = embedding_model.encode(document.page_content)
             image_embedding = get_image_embedding(embedding_model, image_path=document.metadata["full_image_path"])
+            text_embedding = np.array(text_embedding, dtype=np.float32)
+            image_embedding = np.array(image_embedding, dtype=np.float32)
             combined_embedding = np.concatenate([text_embedding, image_embedding])
             embeddings.append(combined_embedding)
 
