@@ -1,14 +1,17 @@
 from contextlib import asynccontextmanager
-from cores.model_factory import ModelFactory
+from cores.model_factory import ModelFactory, get_model_factory
+from cores.store_factory import StoreFactory, get_store_factory
 from fastapi import FastAPI, Depends
 from fastapi.responses import HTMLResponse
-from functools import lru_cache
-from langchain.schema import HumanMessage
-from messages.message import MessageCreateRequest
-from rags.data_loader import load_data
-from rags.store_factory import StoreFactory, get_store_factory
-from rags.graph import build_graph
 from fastapi.staticfiles import StaticFiles
+from langchain_core.runnables import RunnableConfig
+from messages.message import MessageCreateRequest
+from PIL import Image
+from components.data_loader import load_data
+from components.graph import build_graph
+from transformers import BlipProcessor, BlipForConditionalGeneration
+
+import os
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -19,10 +22,6 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown logic
     print("App is shutting down...")
-
-@lru_cache()
-def get_model_factory() -> ModelFactory:
-    return ModelFactory()
 
 app = FastAPI(lifespan=lifespan)
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -49,37 +48,82 @@ def read_root():
             </div>
             <input type="text" id="message-input" placeholder="Type your message...">
             <button onclick="sendMessage()">Send</button>
+            <input type="file" id="image-input" accept="image/*">
 
             <script>
                 // Function to Send Message to create_message Endpoint
                 async function sendMessage() {
                     const messageInput = document.getElementById("message-input");
-                    const message = messageInput.value;
-                    if (message.trim() === "") return;
+                    const imageInput = document.getElementById("image-input");
+                    let message = messageInput.value;
+                    const file = imageInput.files[0];
+                    if (message.trim() === "" && !file) return;
 
-                    // Send POST request to /create_message
+                    let imageBase64 = null;
+                    let formData = new FormData();
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.readAsDataURL(file);
+                        reader.onload = async function () {
+                            imageBase64 = reader.result.split(",")[1]; // Extract Base64 data
+                            await sendJsonRequest(message, imageBase64);
+                        };
+                    } else {
+                        await sendJsonRequest(message, null);
+                    }
+                }
+                async function sendJsonRequest(message, imageBase64) {
+                    const payload = {
+                        message: message,
+                        image: imageBase64
+                    };
+
+                    // Send POST request to /create_message with JSON
                     const response = await fetch("/create_message", {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json"
                         },
-                        body: JSON.stringify({
-                            "message": message
-                        })
+                        body: JSON.stringify(payload)
                     });
 
-                    // Get response JSON and update chat box
                     const data = await response.json();
-                    console.log(data)
-                    updateChatBox(message, data.message);
-                    messageInput.value = "";  // Clear input
+                    updateChatBox(message, imageBase64, data.message);
                 }
-                // Function to Update Chat Box
-                function updateChatBox(userMessage, botReply) {
+
+                function updateChatBox(userMessage, imageBase64, botReply) {
                     const chatBox = document.getElementById("chat-box");
-                    chatBox.innerHTML += `<div class="message user"><strong>You:</strong> ${userMessage}</div>`;
-                    chatBox.innerHTML += `<div class="message bot"><strong>Bot:</strong> ${botReply}</div>`;
-                    chatBox.scrollTop = chatBox.scrollHeight;  // Auto-scroll to bottom
+
+                    // Append user message
+                    if (userMessage) {
+                        const userMessageDiv = document.createElement("div");
+                        userMessageDiv.classList.add("message", "user");
+                        userMessageDiv.innerHTML = `<strong>You:</strong> ${userMessage}`;
+                        chatBox.appendChild(userMessageDiv);
+                    }
+
+                    // Append image if uploaded
+                    if (imageBase64) {
+                        const imageDiv = document.createElement("div");
+                        imageDiv.classList.add("message", "user");
+
+                        const img = document.createElement("img");
+                        img.src = `data:image/png;base64,${imageBase64}`;
+                        img.style.maxWidth = "200px";
+                        img.style.marginTop = "5px";
+
+                        imageDiv.appendChild(img);
+                        chatBox.appendChild(imageDiv);
+                    }
+
+                    // Append bot response
+                    const botMessageDiv = document.createElement("div");
+                    botMessageDiv.classList.add("message", "bot");
+                    botMessageDiv.innerHTML = `<strong>Bot:</strong> ${botReply}`;
+                    chatBox.appendChild(botMessageDiv);
+
+                    // Auto-scroll
+                    chatBox.scrollTop = chatBox.scrollHeight;
                 }
            </script>
         </body>
@@ -88,15 +132,32 @@ def read_root():
 
 @app.post("/create_message")
 def create_message(payload: MessageCreateRequest, model_factory: ModelFactory = Depends(get_model_factory), store_factory: StoreFactory = Depends(get_store_factory)):
-    llm = model_factory.get_groq_model()
-    vector_store = store_factory.get_in_memory_store()
+    llm = model_factory.get_llm_model("llama3-8b-8192", model_provider="groq")
+    # InMemoryStore can only work on text
+    #vector_store = store_factory.get_in_memory_store()
 
+    vector_store = store_factory.get_faiss_store()
     graph = build_graph(llm, vector_store)
-    config = {"thread_id": "abc123"}
-    input = {"messages": [{"type": "human", "content": payload.message}]}
-    response = graph.invoke(input, config=config)
+    input = {"messages": [{"type": "human", "content": payload.message, "image": payload.image}]}
+    response = graph.invoke(input, config=RunnableConfig({"thread_id": "abc123"}))
+    print(f"response: {response['messages'][-1].content}")
     return {
         "message": response['messages'][-1].content
     }
 
+#A test to recognize images. Could potentially used to construct prompt for image-based searching
+@app.get("/test_image_to_text")
+def test_image_to_text():
+    image_path = os.path.join("./static/images/", "iphone_pro_black.jpg")
+    image = Image.open(image_path)
+    processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-large")
+    model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-large")
+    inputs = processor(images=image, return_tensors="pt")
+
+    output = model.generate(**inputs)
+    caption = processor.decode(output[0], skip_special_tokens=True)
+    print(caption)
+    return {
+        "message": caption
+    }
 
