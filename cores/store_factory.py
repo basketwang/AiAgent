@@ -24,8 +24,12 @@ class StoreFactory:
         with self._lock:
             if store_type not in self.store_pool:
                 if store_type == VectorStoreType.IN_MEMORY:
+                    if not documents:
+                        raise Exception("No documents provided when pre-processing in-memory store")
                     self.store_pool[store_type] = self.create_in_memory_store(documents)
                 elif store_type == VectorStoreType.FAISS:
+                    if not documents:
+                        raise Exception("No documents provided when pre-processing FAISS store")
                     self.store_pool[store_type] = self.create_faiss_store(documents)
  
             return self.store_pool[store_type]
