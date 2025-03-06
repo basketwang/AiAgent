@@ -1,9 +1,7 @@
 from langchain.prompts import PromptTemplate
 
-def generate_prompt() -> PromptTemplate:
-    return PromptTemplate(
-        input_variables=["user_input", "retrieved_documents"],
-        template="""
+def generate_prompt(user_message:str, retrieved_documents:str) -> str:
+    return f"""
         You are an AI sales assistant helping customers find the best products based on their needs.
         Use the following pieces of retrieved context to answer the question. 
 
@@ -25,11 +23,18 @@ def generate_prompt() -> PromptTemplate:
         - Prioritize clarity and conciseness in your answers.
 
         ### User Query:
-        {user_input}
+        {user_message}
 
-        ### Retrieved Knowledge Base Information: 
+        ### Retrieved Knowledge Base Information:
         {retrieved_documents}
 
         ### Response:
         """
-    )
+
+def generate_image_search_user_prompt(user_message:str) -> str:
+    return f'''{user_message}\n\n
+        The picture has been used to find relavent products, just show the list from the retrieved_documents.
+        If there is no retrieved_decouments, just say can't find this product
+        '''
+
+
