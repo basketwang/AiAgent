@@ -1,7 +1,6 @@
 from contextlib import asynccontextmanager
-from cores.model_factory import ModelFactory, get_model_factory
-from cores.store_factory import StoreFactory, VectorStoreType, get_store_factory
-from fastapi import FastAPI, Depends
+from cores.store_factory import VectorStoreType
+from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from langchain_core.runnables import RunnableConfig
@@ -12,6 +11,7 @@ from components.graph import build_graph
 from transformers import BlipProcessor, BlipForConditionalGeneration
 
 import os
+import uuid
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -25,6 +25,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+session_threads = {}
 
 @app.get("/", response_class=HTMLResponse)
 def read_root():
@@ -52,6 +54,8 @@ def read_root():
 
             <script>
                 // Function to Send Message to create_message Endpoint
+                const user_id = crypto.randomUUID();
+
                 async function sendMessage() {
                     const messageInput = document.getElementById("message-input");
                     const imageInput = document.getElementById("image-input");
@@ -66,16 +70,17 @@ def read_root():
                         reader.readAsDataURL(file);
                         reader.onload = async function () {
                             imageBase64 = reader.result.split(",")[1]; // Extract Base64 data
-                            await sendJsonRequest(message, imageBase64);
+                            await sendJsonRequest(user_id, message, imageBase64);
                         };
                         imageInput.value = '';
                     } else {
-                        await sendJsonRequest(message, null);
+                        await sendJsonRequest(user_id, message, null);
                     }
                     messageInput.value = '';
                 }
-                async function sendJsonRequest(message, imageBase64) {
+                async function sendJsonRequest(user_id, message, imageBase64) {
                     const payload = {
+                        user_id: user_id,
                         message: message,
                         image: imageBase64
                     };
@@ -133,10 +138,12 @@ def read_root():
    """
 
 @app.post("/create_message")
-def create_message(payload: MessageCreateRequest, model_factory: ModelFactory = Depends(get_model_factory), store_factory: StoreFactory = Depends(get_store_factory)):
+def create_message(payload: MessageCreateRequest):
     graph = build_graph("llama3-8b-8192", "groq", VectorStoreType.FAISS)
+
     input = {"messages": [{"type": "human", "content": payload.message, "image": payload.image}]}
-    response = graph.invoke(input, config=RunnableConfig(configurable={"thread_id": "abc123"}))
+    response = graph.invoke(input, config=RunnableConfig(configurable={"thread_id": payload.user_id}))
+    print(payload.user_id)
     return {
         "message": response['messages'][-1].content
     }

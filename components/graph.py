@@ -33,6 +33,8 @@ def build_graph(model:str, model_provider:str, vector_store_type: VectorStoreTyp
 
         vector_store = get_store_factory().get_vector_store(vector_store_type)
         retrieved_docs = vector_store.similarity_search_with_score_by_vector(combined_embedding)
+        for doc, score in retrieved_docs:
+            print(f"Document: {doc} , Similarity Score: {score}")
         matched_docs = [doc for doc, score in retrieved_docs if score < 150]
 
         if matched_docs:

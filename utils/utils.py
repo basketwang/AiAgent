@@ -8,6 +8,7 @@ import base64
 import os
 
 class MessageCreateRequest(BaseModel):
+    user_id: str = Field(..., description="user_id")
     message: str = Field(..., description="The content of the message")
     image: str | None = Field(None, description="The string of the image")
 
