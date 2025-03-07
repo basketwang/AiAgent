@@ -14,10 +14,8 @@ def load_data():
     documents = []
     for product in product_data["products"]:
         documents.extend(process_product(product, image_model))
-    store = get_store_factory().get_vector_store(VectorStoreType.FAISS, documents)
-    store.save_local("faiss_index")
+    get_store_factory().get_vector_store(VectorStoreType.FAISS, documents)
     print(f"Finish loading data")
-
 
 def process_product(product, image_model):
     documents = []
