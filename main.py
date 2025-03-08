@@ -54,7 +54,7 @@ def read_root():
 
             <script>
                 // Function to Send Message to create_message Endpoint
-                const user_id = crypto.randomUUID();
+                const user_id = Math.floor(Math.random() * 100000).toString()
 
                 async function sendMessage() {
                     const messageInput = document.getElementById("message-input");
