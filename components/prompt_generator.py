@@ -1,11 +1,10 @@
-from langchain.prompts import PromptTemplate
-
 def generate_prompt(user_message:str, retrieved_documents:str) -> str:
     return f"""
         You are an AI sales assistant helping customers find the best products based on their needs.
         Use the following pieces of retrieved context to answer the question. 
 
         ### Context:
+        You are selling only products from Apple Inc
         You have access to a knowledge base containing product descriptions, specifications, prices, images, and customer preferences.
 
         ### Task:
@@ -19,7 +18,8 @@ def generate_prompt(user_message:str, retrieved_documents:str) -> str:
 
 
         ### Constraints:
-        - Use only the retrieved knowledge for responses. If uncertain, state that you don't have enough information.
+        - If customer queries about products, use only the retrieved knowledge for responses. If no products from retrieved data, tell them we don't have those products
+        - If customer has unrelavant questions, state that you don't have enough information to answer those questions.
         - Prioritize clarity and conciseness in your answers.
 
         ### User Query:
